@@ -24,6 +24,10 @@ checker, and diffs; for ACCEPT-MANAGED the managed LINT output is part of
 the expected result. Contested programs say so in the line's trailing
 note, so they can be pinned separately from settled ones.
 
+Both harnesses fail with the file name when a `.hy` file has no valid
+EXPECTED-VERDICT line. A REJECT rule must appear on that same line.
+Unregistered files are errors, not skipped coverage.
+
 Tripwire rule: more than ~25% of this corpus needing `managed` reopens G0
 (QUESTIONS.md Q1 item 5). Baseline at pre-registration: 11.1%
 verdict-level / 16.7% as-written — definitions and recompute rules in
