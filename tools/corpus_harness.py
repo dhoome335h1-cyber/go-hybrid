@@ -62,6 +62,13 @@ def run_checker(bin_path, hy_path, report_managed=False):
     if report_managed:
         cmd.append("--report-managed")
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    # Exit 0 means accepted and exit 1 means rejected. Any other status
+    # indicates a checker failure, even if it already emitted valid JSON.
+    if proc.returncode not in (0, 1):
+        raise RuntimeError(
+            f"checker exited unexpectedly for {hy_path} "
+            f"(exit {proc.returncode}): {proc.stderr[:400]}"
+        )
     out = proc.stdout.strip()
     if not out:
         raise RuntimeError(
