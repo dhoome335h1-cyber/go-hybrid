@@ -39,7 +39,7 @@ DEFAULT_BIN = os.path.join(
 )
 
 VERDICT_RE = re.compile(
-    r"^//\s*EXPECTED-VERDICT:\s*(ACCEPT-MANAGED|ACCEPT|REJECT)\b\s*(\S*)", re.M
+    r"^//[ \t]*EXPECTED-VERDICT:[ \t]*(ACCEPT-MANAGED|ACCEPT|REJECT)\b[ \t]*(\S*)", re.M
 )
 HAZARD_RE = re.compile(
     r"^//\s*RUNTIME-HAZARD:\s*(.+)$", re.M
@@ -55,7 +55,7 @@ def read_expected(path):
         src = f.read()
     m = VERDICT_RE.search(src)
     if not m:
-        return None
+        raise SystemExit(f"corpus error: {path} has no valid EXPECTED-VERDICT line")
     verdict, rule = m.group(1), m.group(2)
     if verdict == "REJECT" and not rule:
         raise SystemExit(f"corpus error: {path} has REJECT without a rule id")
@@ -145,8 +145,6 @@ def main():
 
     for path in files:
         expected = read_expected(path)
-        if expected is None:
-            continue
         name = os.path.basename(path)
         verdict, rule, hazards = expected
         if verdict == "REJECT":
