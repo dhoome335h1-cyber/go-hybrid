@@ -25,6 +25,7 @@ jobs:
           python3 -m unittest discover -s tools -p test_managed_gate.py -v
           python3 -m unittest discover -s tools -p test_differential_loop.py -v
           python3 -m unittest discover -s tools -p test_empty_corpus.py -v
+          python3 -m unittest discover -s tests -p test_corpus_harness_process_exit.py -v
           # runner self-test: execute a trivial inline job end-to-end
           mkdir -p /tmp/selftest && cd /tmp/selftest
           cat > job.json <<'EOF'
