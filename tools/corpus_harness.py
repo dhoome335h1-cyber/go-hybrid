@@ -33,7 +33,7 @@ DEFAULT_CORPUS = os.path.join(REPO_ROOT, "tests", "checker-corpus")
 DEFAULT_BIN = os.path.join(os.environ.get("CARGO_TARGET_DIR", "/home/z/go-hybrid-target"), "debug", "hyb")
 
 VERDICT_RE = re.compile(
-    r"^//\s*EXPECTED-VERDICT:\s*(ACCEPT-MANAGED|ACCEPT|REJECT)\b\s*(\S*)", re.M
+    r"^//[ \t]*EXPECTED-VERDICT:[ \t]*(ACCEPT-MANAGED|ACCEPT|REJECT)\b[ \t]*(\S*)", re.M
 )
 
 # As-written managed (the friction number) — the pre-registered static list
@@ -44,12 +44,12 @@ TRIPWIRE_PCT = 25.0  # ~25%, recorded tunable (SPEC §9.7)
 
 
 def read_expected(path):
-    """Return (verdict, rule_id) or None if no EXPECTED-VERDICT line."""
+    """Return (verdict, rule_id), rejecting unregistered corpus inputs."""
     with open(path, encoding="utf-8") as f:
         src = f.read()
     m = VERDICT_RE.search(src)
     if not m:
-        return None
+        raise SystemExit(f"corpus error: {path} has no valid EXPECTED-VERDICT line")
     verdict, rule = m.group(1), m.group(2)
     if verdict == "REJECT" and not rule:
         raise SystemExit(f"corpus error: {path} has REJECT without a rule id")
@@ -131,10 +131,11 @@ def main():
 
     for fname in files:
         path = os.path.join(args.corpus, fname)
-        expected = read_expected(path)
-        if expected is None:
-            print(f"SKIP (no EXPECTED-VERDICT): {fname}")
-            continue
+        try:
+            expected = read_expected(path)
+        except SystemExit as error:
+            print(error, file=sys.stderr)
+            return 2
         total += 1
         num = fname.split("-", 1)[0]
         try:
