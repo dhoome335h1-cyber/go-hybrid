@@ -76,6 +76,11 @@ def checker_rejects(bin_path, hy_path):
     except json.JSONDecodeError:
         return False, "no/invalid checker JSON"
     summary = payload.get("summary", {})
+    if proc.returncode != 1:
+        return False, (
+            f"checker exit/verdict mismatch: exit {proc.returncode}, "
+            f"verdict={summary.get('verdict')}"
+        )
     diags = payload.get("diagnostics", [])
     errors = [d for d in diags if d.get("severity") == "error"]
     return (
