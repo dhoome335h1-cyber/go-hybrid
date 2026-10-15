@@ -1,4 +1,4 @@
-"""Regression tests for unexpected checker process exits in the corpus harness.
+"""Regression tests for unexpected checker exits in both corpus gates.
 
 Run from the repository root:
     python -m unittest discover -s tests -p test_corpus_harness_process_exit.py -v
@@ -22,6 +22,11 @@ HARNESS_FILE = Path(__file__).resolve().parents[1] / "tools" / "corpus_harness.p
 spec = importlib.util.spec_from_file_location("corpus_harness", HARNESS_FILE)
 harness = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(harness)
+
+DIFFERENTIAL_FILE = Path(__file__).resolve().parents[1] / "tools" / "differential_loop.py"
+diff_spec = importlib.util.spec_from_file_location("differential_loop", DIFFERENTIAL_FILE)
+differential = importlib.util.module_from_spec(diff_spec)
+diff_spec.loader.exec_module(differential)
 
 
 def fake_checker(returncode, verdict="accept", errors=None, stderr=""):
@@ -78,6 +83,30 @@ class CheckerExitStatusTests(unittest.TestCase):
         self.assertEqual(result, 1)
         self.assertIn("harness-error", capture.getvalue())
         self.assertIn("verdict agreement: 0/1", capture.getvalue())
+
+
+    def test_differential_allows_normal_rejection_exit_one(self):
+        diagnostics = [{"severity": "error", "tier0_rule": "A1", "code": "HYB-E3001"}]
+        with patch.object(
+            differential.subprocess,
+            "run",
+            return_value=fake_checker(1, "reject", diagnostics),
+        ):
+            ok, detail = differential.checker_rejects("hyb", "fixture.hy")
+        self.assertTrue(ok, detail)
+
+    def test_differential_rejects_unexpected_checker_exits(self):
+        diagnostics = [{"severity": "error", "tier0_rule": "A1", "code": "HYB-E3001"}]
+        for returncode in (2, 101, -11):
+            with self.subTest(returncode=returncode):
+                with patch.object(
+                    differential.subprocess,
+                    "run",
+                    return_value=fake_checker(returncode, "reject", diagnostics),
+                ):
+                    ok, detail = differential.checker_rejects("hyb", "fixture.hy")
+                self.assertFalse(ok)
+                self.assertIn(f"unexpected checker exit {returncode}", detail)
 
 
 if __name__ == "__main__":
