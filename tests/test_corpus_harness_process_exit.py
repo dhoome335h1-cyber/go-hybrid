@@ -67,6 +67,21 @@ class CheckerExitStatusTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "exit 101"):
                 harness.run_checker("hyb", "fixture.hy")
 
+    def test_accept_json_with_reject_exit_is_rejected(self):
+        with patch.object(harness.subprocess, "run", return_value=fake_checker(1, "accept")):
+            with self.assertRaisesRegex(RuntimeError, "exit/verdict mismatch"):
+                harness.run_checker("hyb", "fixture.hy")
+
+    def test_reject_json_with_success_exit_is_rejected(self):
+        diagnostics = [{"severity": "error", "tier0_rule": "A1"}]
+        with patch.object(
+            harness.subprocess,
+            "run",
+            return_value=fake_checker(0, "reject", diagnostics),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "exit/verdict mismatch"):
+                harness.run_checker("hyb", "fixture.hy")
+
     def test_main_returns_disagreement_for_unexpected_checker_exit(self):
         # JSON from a failed checker must not yield a misleading 1/1 agreement.
         with tempfile.TemporaryDirectory() as tmp:
@@ -107,6 +122,17 @@ class CheckerExitStatusTests(unittest.TestCase):
                     ok, detail = differential.checker_rejects("hyb", "fixture.hy")
                 self.assertFalse(ok)
                 self.assertIn(f"unexpected checker exit {returncode}", detail)
+
+    def test_differential_rejects_reject_json_with_success_exit(self):
+        diagnostics = [{"severity": "error", "tier0_rule": "A1"}]
+        with patch.object(
+            differential.subprocess,
+            "run",
+            return_value=fake_checker(0, "reject", diagnostics),
+        ):
+            ok, detail = differential.checker_rejects("hyb", "fixture.hy")
+        self.assertFalse(ok)
+        self.assertIn("exit/verdict mismatch", detail)
 
 
 if __name__ == "__main__":
