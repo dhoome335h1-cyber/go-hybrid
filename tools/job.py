@@ -162,6 +162,9 @@ def kaggle_fetch(jobdir, slug=None):
     os.makedirs(raw, exist_ok=True)
     rc, out = sh("{} kernels output {} -p {}".format(KAGGLE_CLI, slug, raw), timeout=180)
     print(out)
+    if rc != 0:
+        print("ERROR: kaggle kernels output failed")
+        return rc
     # find summary.json anywhere under raw
     found = []
     for root, _, files in os.walk(raw):
@@ -175,8 +178,10 @@ def kaggle_fetch(jobdir, slug=None):
         print("summary.json -> " + dst)
         with open(dst) as f:
             print(json.dumps(json.load(f), indent=2)[:3000])
+        return 0
     else:
         print("WARNING: no summary.json in output")
+        return 1
 
 
 # --------------------------------------------------------------- actions tier
@@ -224,7 +229,7 @@ def main():
         minutes = float(sys.argv[3])
         sys.exit(kaggle_wait(minutes, sys.argv[4] if len(sys.argv) > 4 else None))
     elif tier == "kaggle" and action == "fetch" and len(sys.argv) == 4:
-        kaggle_fetch(os.path.abspath(sys.argv[3]))
+        sys.exit(kaggle_fetch(os.path.abspath(sys.argv[3])))
     elif tier == "actions" and action == "dispatch" and len(sys.argv) >= 7:
         actions_dispatch(sys.argv[3], sys.argv[4], sys.argv[5], int(sys.argv[6]), int(sys.argv[7]))
     elif tier == "actions" and action == "watch":
