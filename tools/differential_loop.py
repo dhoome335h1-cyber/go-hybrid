@@ -69,6 +69,8 @@ def checker_rejects(bin_path, hy_path):
         [bin_path, "check", hy_path, "--json"],
         capture_output=True, text=True, timeout=60,
     )
+    if proc.returncode not in (0, 1):
+        return False, f"unexpected checker exit {proc.returncode}"
     try:
         payload = json.loads(proc.stdout.strip())
     except json.JSONDecodeError:
